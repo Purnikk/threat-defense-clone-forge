@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
-import { Menu, X, Shield, LogOut, Upload } from 'lucide-react';
+import { Menu, X, Shield, LogOut } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +13,6 @@ const Navbar: React.FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Threats', path: '/threats', requiresAuth: true },
     { label: 'Upload', path: '/upload', requiresAuth: true },
-    { label: 'Statistics', path: '/stats', requiresAuth: true },
   ];
 
   const filteredNavItems = navItems.filter(item => 

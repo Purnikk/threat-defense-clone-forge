@@ -47,7 +47,6 @@ const LoginForm: React.FC = () => {
     
     // No errors, proceed with login
     login(email, password);
-    toast.success("Login successful!");
   };
 
   return (
@@ -104,13 +103,6 @@ const LoginForm: React.FC = () => {
           <Button type="submit" className="w-full" size="lg">
             <LogIn className="mr-2 h-4 w-4" /> Sign in
           </Button>
-          
-          <div className="text-center text-sm mt-4">
-            Don't have an account?{" "}
-            <a href="#" className="text-primary font-medium hover:underline">
-              Sign up
-            </a>
-          </div>
         </form>
       </CardContent>
     </Card>
