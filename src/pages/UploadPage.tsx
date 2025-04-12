@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Upload, FileUp, Download, ArrowRight } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -34,33 +34,13 @@ const UploadPage = () => {
     }
   };
 
-  const handleUpload = () => {
-    if (!selectedFiles) {
-      toast.error("Please select a file first");
-      return;
-    }
-    
-    if (!selectedAlgorithm) {
-      toast.error("Please select an algorithm");
-      return;
-    }
-
-    toast.success("File uploaded successfully!");
-    // In a real app, you would send the file to your backend here
-  };
-
-  const handleDownload = () => {
-    toast.info("Downloading result file");
-    // In a real app, this would download the processed file
-  };
-
   const handlePredict = () => {
-    if (!selectedFiles) {
+    if (!selectedFiles && selectedAlgorithm) {
       toast.error("Please select a file first");
       return;
     }
     
-    if (!selectedAlgorithm) {
+    if (!selectedAlgorithm && selectedFiles) {
       toast.error("Please select an algorithm");
       return;
     }
@@ -77,12 +57,12 @@ const UploadPage = () => {
       <Navbar />
 
       <main className="flex-1 py-12 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-10 text-center">Upload Dataset Files</h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Random Row Predict */}
-            <Card>
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>RANDOM ROW PREDICT</CardTitle>
                 <CardDescription>
@@ -90,14 +70,17 @@ const UploadPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <Button className="w-full" onClick={() => toast.info("Random prediction initiated")}>
+                <Button 
+                  className="w-full bg-cyan-500 hover:bg-cyan-600" 
+                  onClick={() => toast.info("Random prediction initiated")}
+                >
                   Predict
                 </Button>
               </CardContent>
             </Card>
 
             {/* Open CSV */}
-            <Card>
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>OPEN CSV</CardTitle>
                 <CardDescription>
@@ -128,19 +111,17 @@ const UploadPage = () => {
                   />
                 </div>
                 
-                <Button className="w-full" onClick={handlePredict}>
+                <Button 
+                  className="w-full bg-cyan-500 hover:bg-cyan-600" 
+                  onClick={handlePredict}
+                >
                   Predict
-                </Button>
-                
-                <Button variant="outline" className="w-full" onClick={handleDownload}>
-                  <Download size={16} className="mr-2" />
-                  Download File
                 </Button>
               </CardContent>
             </Card>
 
             {/* Enter Network Parameters */}
-            <Card>
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Enter Network Parameters</CardTitle>
                 <CardDescription>
@@ -148,77 +129,15 @@ const UploadPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <Button className="w-full" onClick={() => toast.info("Network parameter prediction initiated")}>
+                <Button 
+                  className="w-full bg-cyan-500 hover:bg-cyan-600" 
+                  onClick={() => toast.info("Network parameter prediction initiated")}
+                >
                   Predict
                 </Button>
               </CardContent>
             </Card>
           </div>
-          
-          {/* Advanced Upload Section */}
-          <Card className="mt-12">
-            <CardHeader>
-              <CardTitle>Advanced Dataset Upload</CardTitle>
-              <CardDescription>
-                Upload multiple files or complete datasets for batch analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center mb-6">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <Upload size={40} className="text-primary/60" />
-                  <div className="text-lg font-medium">Drop files here or click to browse</div>
-                  <p className="text-gray-500">Supports CSV, PCAP, and log files</p>
-                  
-                  <Input 
-                    id="advanced-upload"
-                    type="file" 
-                    multiple 
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <Button asChild>
-                    <label htmlFor="advanced-upload" className="cursor-pointer">
-                      <FileUp size={16} className="mr-2" />
-                      Select Files
-                    </label>
-                  </Button>
-                </div>
-              </div>
-              
-              {selectedFiles && (
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Selected Files:</h3>
-                  <div className="bg-primary/10 rounded p-3 max-h-32 overflow-y-auto">
-                    {Array.from(selectedFiles).map((file, index) => (
-                      <div key={index} className="text-sm py-1">
-                        {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Analysis Algorithm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {algorithms.map(algo => (
-                      <SelectItem key={algo.value} value={algo.value}>
-                        {algo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Button onClick={handleUpload} className="flex items-center gap-2">
-                  Upload and Analyze <ArrowRight size={16} />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </main>
 
