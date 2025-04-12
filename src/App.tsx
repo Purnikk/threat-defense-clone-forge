@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import ThreatsPage from "./pages/ThreatsPage";
+import UploadPage from "./pages/UploadPage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/threats" element={<ThreatsPage />} />
+            <Route path="/upload" element={<UploadPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

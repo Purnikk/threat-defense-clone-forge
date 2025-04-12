@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
-import { Menu, X, Shield, LogOut } from 'lucide-react';
+import { Menu, X, Shield, LogOut, Upload } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,11 +11,16 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { label: 'Home', path: '/' },
-    { label: 'Features', path: '/features' },
-    { label: 'Threats', path: '/threats' },
+    { label: 'Dashboard', path: '/dashboard', requiresAuth: true },
+    { label: 'Threats', path: '/threats', requiresAuth: true },
+    { label: 'Upload', path: '/upload', requiresAuth: true },
     { label: 'About', path: '/about' },
-    { label: 'Statistics', path: '/stats' },
+    { label: 'Statistics', path: '/stats', requiresAuth: true },
   ];
+
+  const filteredNavItems = navItems.filter(item => 
+    !item.requiresAuth || (item.requiresAuth && isAuthenticated)
+  );
 
   return (
     <nav className="bg-primary py-4 px-6 md:px-10">
@@ -27,7 +32,7 @@ const Navbar: React.FC = () => {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-8">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <Link
               key={item.label}
               to={item.path}
@@ -66,7 +71,7 @@ const Navbar: React.FC = () => {
       {isOpen && (
         <div className="md:hidden absolute top-16 left-0 right-0 bg-primary z-50 px-6 py-4 shadow-lg">
           <div className="flex flex-col gap-4">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.path}
