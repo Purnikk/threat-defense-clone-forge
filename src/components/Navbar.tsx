@@ -11,10 +11,8 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { label: 'Home', path: '/' },
-    { label: 'Dashboard', path: '/dashboard', requiresAuth: true },
     { label: 'Threats', path: '/threats', requiresAuth: true },
     { label: 'Upload', path: '/upload', requiresAuth: true },
-    { label: 'About', path: '/about' },
     { label: 'Statistics', path: '/stats', requiresAuth: true },
   ];
 

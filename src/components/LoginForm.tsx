@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { AlertCircle, LogIn, UserPlus } from 'lucide-react';
+import { AlertCircle, LogIn } from 'lucide-react';
 import { toast } from "sonner";
-import { Link } from 'react-router-dom';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -48,10 +47,11 @@ const LoginForm: React.FC = () => {
     
     // No errors, proceed with login
     login(email, password);
+    toast.success("Login successful!");
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
+    <Card className="w-full shadow-lg">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
         <CardDescription className="text-center">
@@ -81,9 +81,9 @@ const LoginForm: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
-              <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+              <a href="#" className="text-sm text-primary hover:underline">
                 Forgot password?
-              </Link>
+              </a>
             </div>
             <Input
               id="password"
@@ -107,9 +107,9 @@ const LoginForm: React.FC = () => {
           
           <div className="text-center text-sm mt-4">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">
+            <a href="#" className="text-primary font-medium hover:underline">
               Sign up
-            </Link>
+            </a>
           </div>
         </form>
       </CardContent>
