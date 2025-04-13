@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import ThreatsPage from "./pages/ThreatsPage";
 import UploadPage from "./pages/UploadPage";
 import ResultsPage from "./pages/ResultsPage";
+import UnsafeExamplePage from "./pages/UnsafeExamplePage";
 import ClassificationTablePage from "./pages/ClassificationTablePage";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/threats" element={<ThreatsPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/unsafe-example" element={<UnsafeExamplePage />} />
             <Route path="/classification-table" element={<ClassificationTablePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

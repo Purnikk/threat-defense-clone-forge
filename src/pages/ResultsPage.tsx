@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import SecurityStatusAlert from '@/components/SecurityStatusAlert';
-import { ShieldCheck, Shield, ShieldAlert, ShieldX } from 'lucide-react';
+import { ShieldCheck, Shield, Info } from 'lucide-react';
 
 const ResultsPage = () => {
   const { isAuthenticated } = useAuth();
@@ -17,11 +17,11 @@ const ResultsPage = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // UNSAFE Example: Lower accuracy scores to demonstrate unsafe status
-  const knnBinaryAccuracy = 0.8860368900303525;
-  const knnMultiAccuracy = 0.8740368900303525;
-  const rfBinaryAccuracy = 0.8741029652113005;
-  const rfMultiAccuracy = 0.8731029652113005;
+  // SAFE Example: High accuracy scores to demonstrate safe status
+  const knnBinaryAccuracy = 0.9760368900303525;
+  const knnMultiAccuracy = 0.9640368900303525;
+  const rfBinaryAccuracy = 0.9841029652113005;
+  const rfMultiAccuracy = 0.9731029652113005;
 
   const averageAccuracy = (knnBinaryAccuracy + knnMultiAccuracy + rfBinaryAccuracy + rfMultiAccuracy) / 4;
   
@@ -31,9 +31,8 @@ const ResultsPage = () => {
                      (averageAccuracy > 0.90 ? 'low' : 
                      (averageAccuracy > 0.85 ? 'medium' : 'high'));
 
-  const securityMessage = isSafe 
-    ? "Based on our comprehensive analysis using KNN and Random Forest algorithms, your system appears to be secure. No malicious activity has been detected in the analyzed dataset. Continue monitoring for optimal security."
-    : "Our analysis has detected potential security concerns. The analysis shows several patterns that match known attack signatures. We've identified irregular network behavior that suggests possible unauthorized access attempts. Immediate investigation and security measures are recommended.";
+  const securityMessage = 
+    "Based on our comprehensive analysis using KNN and Random Forest algorithms, your system appears to be secure. No malicious activity has been detected in the analyzed dataset. All network traffic patterns match normal behavior signatures. Continue monitoring for optimal security.";
 
   const handleViewTable = (algorithm: 'knn' | 'rf', tableType: 'binary' | 'multi') => {
     navigate('/classification-table', { state: { algorithm, tableType } });
@@ -124,55 +123,48 @@ const ResultsPage = () => {
           </div>
           
           {/* Overall Security Status Card */}
-          <Card className={`
-            ${isSafe ? 'bg-green-100/80' : 'bg-red-100/80'} 
-            backdrop-blur-sm border-none shadow-lg overflow-hidden
-          `}>
+          <Card className="bg-green-100/80 backdrop-blur-sm border-none shadow-lg overflow-hidden mb-8">
             <CardContent className="p-8 flex flex-col items-center">
               <div className="flex items-center mb-4">
-                {isSafe ? (
-                  <ShieldCheck className="h-8 w-8 text-green-600 mr-2" />
-                ) : (
-                  <ShieldX className="h-8 w-8 text-red-600 mr-2" />
-                )}
+                <ShieldCheck className="h-8 w-8 text-green-600 mr-2" />
                 <h2 className="text-2xl font-bold text-center">
-                  {isSafe ? 'System Security Status: Safe' : 'System Security Status: Unsafe - Action Required'}
+                  System Security Status: Safe
                 </h2>
               </div>
               
-              <p className="text-center">
+              <p className="text-center text-green-800 mb-4">
                 {securityMessage}
               </p>
               
-              {!isSafe && (
-                <div className="w-full mt-4 p-4 bg-red-200/50 rounded-lg border border-red-300">
-                  <h3 className="font-semibold mb-2 text-red-800">Detected Threats:</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-red-800">
-                    <li>Multiple suspicious login attempts detected</li>
-                    <li>Unusual outbound traffic patterns identified</li>
-                    <li>Potential data exfiltration detected</li>
-                    <li>Anomalous system behavior observed</li>
-                  </ul>
-                  
-                  <h3 className="font-semibold mt-4 mb-2 text-red-800">Recommended Actions:</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-red-800">
-                    <li>Isolate affected systems immediately</li>
-                    <li>Update firewall rules and security policies</li>
-                    <li>Run a full system scan</li>
-                    <li>Review authentication logs</li>
-                  </ul>
-                </div>
-              )}
+              <div className="w-full mt-4 p-4 bg-green-200/50 rounded-lg border border-green-300">
+                <h3 className="font-semibold mb-2 text-green-800">System Health Indicators:</h3>
+                <ul className="list-disc pl-5 space-y-1 text-green-800">
+                  <li>All network traffic patterns within normal parameters</li>
+                  <li>No unusual authentication attempts detected</li>
+                  <li>Data transfer patterns consistent with regular operations</li>
+                  <li>System behavior metrics within expected ranges</li>
+                </ul>
+              </div>
               
               <div className="w-full mt-6 p-4 bg-white/50 rounded-lg">
                 <h3 className="font-semibold mb-2">Key Indicators:</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Average Model Accuracy: {averageAccuracy.toFixed(4)}</li>
+                  <li>Average Model Accuracy: <span className="text-green-700 font-semibold">{averageAccuracy.toFixed(4)} (ABOVE SAFE THRESHOLD)</span></li>
                   <li>KNN Binary Classification Accuracy: {knnBinaryAccuracy.toFixed(4)}</li>
                   <li>KNN Multi-Class Classification Accuracy: {knnMultiAccuracy.toFixed(4)}</li>
                   <li>Random Forest Binary Classification Accuracy: {rfBinaryAccuracy.toFixed(4)}</li>
                   <li>Random Forest Multi-Class Classification Accuracy: {rfMultiAccuracy.toFixed(4)}</li>
                 </ul>
+              </div>
+              
+              <div className="w-full mt-6 flex justify-center">
+                <Button 
+                  className="bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2"
+                  onClick={() => navigate('/unsafe-example')}
+                >
+                  <Info className="h-5 w-5" />
+                  View Example of an Unsafe System
+                </Button>
               </div>
             </CardContent>
           </Card>
