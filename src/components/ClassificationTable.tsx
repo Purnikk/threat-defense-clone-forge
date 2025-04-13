@@ -23,6 +23,32 @@ const ClassificationTable: React.FC<ClassificationTableProps> = ({
   rows,
   isBinary = true
 }) => {
+  // Function to determine if a value indicates high performance (for color highlighting)
+  const isHighPerformance = (value: string | number): boolean => {
+    if (typeof value === 'string') {
+      const numValue = parseFloat(value);
+      return !isNaN(numValue) && numValue >= 0.95;
+    }
+    return typeof value === 'number' && value >= 0.95;
+  };
+
+  // Function to determine cell background color based on value
+  const getCellColor = (value: string | number): string => {
+    if (typeof value === 'string' && (value === '-' || value === '')) return '';
+    
+    if (isHighPerformance(value)) {
+      return 'bg-green-400/40';
+    } else {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      if (!isNaN(numValue as number)) {
+        if (numValue >= 0.9) return 'bg-amber-400/40';
+        if (numValue >= 0.85) return 'bg-orange-400/40';
+        if (numValue < 0.85) return 'bg-red-400/40';
+      }
+    }
+    return '';
+  };
+
   return (
     <div className="w-full">
       <h1 className="text-3xl font-bold mb-6 text-center text-white">
@@ -54,7 +80,7 @@ const ClassificationTable: React.FC<ClassificationTableProps> = ({
                 {Object.keys(row).map((key, cellIndex) => (
                   <TableCell 
                     key={cellIndex} 
-                    className="text-center text-white font-medium p-4 border-b border-teal-200"
+                    className={`text-center text-white font-medium p-4 border-b border-teal-200 ${getCellColor(row[key])}`}
                   >
                     {row[key]}
                   </TableCell>

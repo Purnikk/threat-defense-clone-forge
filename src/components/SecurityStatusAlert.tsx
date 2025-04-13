@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 
 interface SecurityStatusAlertProps {
   isSafe: boolean;
@@ -31,7 +31,7 @@ const SecurityStatusAlert: React.FC<SecurityStatusAlertProps> = ({
     switch(threatLevel) {
       case 'low': return <ShieldAlert className="h-5 w-5 text-amber-600" />;
       case 'medium': return <ShieldAlert className="h-5 w-5 text-orange-600" />;
-      case 'high': return <ShieldAlert className="h-5 w-5 text-red-600" />;
+      case 'high': return <ShieldX className="h-5 w-5 text-red-600" />;
       default: return <Shield className="h-5 w-5 text-gray-600" />;
     }
   };
@@ -52,7 +52,8 @@ const SecurityStatusAlert: React.FC<SecurityStatusAlertProps> = ({
       <div className="flex items-center">
         {getIcon()}
         <AlertTitle className={`ml-2 ${getTitleColor()}`}>
-          {isSafe ? 'System is Safe' : 'Potential Threat Detected'}
+          {isSafe ? 'System is Safe' : 
+           (threatLevel === 'high' ? 'Critical Security Threat Detected' : 'Potential Threat Detected')}
         </AlertTitle>
       </div>
       <AlertDescription className="mt-2">
