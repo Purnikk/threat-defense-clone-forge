@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Upload } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const UploadPage = () => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("");
 
@@ -21,10 +21,8 @@ const UploadPage = () => {
   }
 
   const algorithms = [
-    { value: "knn", label: "KNN - 97%" },
-    { value: "randomForest", label: "RANDOM FOREST - 97%" },
-    { value: "cnn", label: "CNN - 95%" },
-    { value: "lstm", label: "LSTM - 95%" },
+    { value: "knn", label: "K-Nearest Neighbor (KNN)" },
+    { value: "randomForest", label: "Random Forest" },
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,21 +32,33 @@ const UploadPage = () => {
     }
   };
 
+  const handleRandomRowPredict = () => {
+    toast.info("Processing random prediction...");
+    
+    // Simulate processing
+    setTimeout(() => {
+      toast.success("Prediction completed!");
+      navigate('/results');
+    }, 2000);
+  };
+
   const handlePredict = () => {
-    if (!selectedFiles && selectedAlgorithm) {
+    if (!selectedFiles) {
       toast.error("Please select a file first");
       return;
     }
     
-    if (!selectedAlgorithm && selectedFiles) {
+    if (!selectedAlgorithm) {
       toast.error("Please select an algorithm");
       return;
     }
 
     toast.success("Prediction started!");
+    
     // Simulate processing
     setTimeout(() => {
       toast.success("Prediction completed!");
+      navigate('/results');
     }, 2000);
   };
 
@@ -60,19 +70,32 @@ const UploadPage = () => {
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-10 text-center">Upload Dataset Files</h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Random Row Predict */}
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>RANDOM ROW PREDICT</CardTitle>
+                <CardTitle>Random Row Predict</CardTitle>
                 <CardDescription>
-                  It will take single row from validation data to predict the type of attack.
+                  It will take a single row from validation data to predict the type of attack.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
+                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Algorithm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {algorithms.map(algo => (
+                      <SelectItem key={algo.value} value={algo.value}>
+                        {algo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
                 <Button 
                   className="w-full bg-cyan-500 hover:bg-cyan-600" 
-                  onClick={() => toast.info("Random prediction initiated")}
+                  onClick={handleRandomRowPredict}
                 >
                   Predict
                 </Button>
@@ -82,7 +105,7 @@ const UploadPage = () => {
             {/* Open CSV */}
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>OPEN CSV</CardTitle>
+                <CardTitle>Open CSV</CardTitle>
                 <CardDescription>
                   It will take a CSV file of rows ranging from (1..500.. n rows) and update the file with type of attack for each row.
                 </CardDescription>
@@ -114,24 +137,6 @@ const UploadPage = () => {
                 <Button 
                   className="w-full bg-cyan-500 hover:bg-cyan-600" 
                   onClick={handlePredict}
-                >
-                  Predict
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Enter Network Parameters */}
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Enter Network Parameters</CardTitle>
-                <CardDescription>
-                  It will take the network parameters from the user and predict the type of attack.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <Button 
-                  className="w-full bg-cyan-500 hover:bg-cyan-600" 
-                  onClick={() => toast.info("Network parameter prediction initiated")}
                 >
                   Predict
                 </Button>

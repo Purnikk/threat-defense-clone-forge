@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ThreatsPage from "./pages/ThreatsPage";
 import UploadPage from "./pages/UploadPage";
+import ResultsPage from "./pages/ResultsPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/threats" element={<ThreatsPage />} />
             <Route path="/upload" element={<UploadPage />} />
+            <Route path="/results" element={<ResultsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
