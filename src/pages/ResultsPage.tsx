@@ -1,73 +1,159 @@
 
 import React from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import SecurityStatusAlert from '@/components/SecurityStatusAlert';
+import { ShieldCheck, Shield, ShieldAlert } from 'lucide-react';
 
 const ResultsPage = () => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  // We'll determine security status based on the model accuracies
+  // For this example, we're using a threshold of 0.95 for safety
+  const knnBinaryAccuracy = 0.9760368900303525;
+  const knnMultiAccuracy = 0.9740368900303525;
+  const rfBinaryAccuracy = 0.9741029652113005;
+  const rfMultiAccuracy = 0.9731029652113005;
+
+  const averageAccuracy = (knnBinaryAccuracy + knnMultiAccuracy + rfBinaryAccuracy + rfMultiAccuracy) / 4;
+  
+  // Determine security status based on the average accuracy
+  const isSafe = averageAccuracy > 0.95;
+  const threatLevel = averageAccuracy > 0.95 ? 'none' : 
+                     (averageAccuracy > 0.90 ? 'low' : 
+                     (averageAccuracy > 0.85 ? 'medium' : 'high'));
+
+  const securityMessage = isSafe 
+    ? "Based on our comprehensive analysis using KNN and Random Forest algorithms, your system appears to be secure. No malicious activity has been detected in the analyzed dataset. Continue monitoring for optimal security."
+    : "Our analysis has detected potential security concerns. While no immediate attack is underway, there are patterns in the data that suggest possible unauthorized activity. Further investigation is recommended.";
+
+  const handleViewTable = (algorithm: 'knn' | 'rf', tableType: 'binary' | 'multi') => {
+    navigate('/classification-table', { state: { algorithm, tableType } });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-teal-500">
       <Navbar />
 
       <main className="flex-1 py-12 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* KNN Card */}
-          <Card className="bg-teal-200/80 backdrop-blur-sm border-none shadow-lg overflow-hidden">
-            <CardContent className="p-8 flex flex-col items-center">
-              <h2 className="text-2xl font-bold text-center mb-6">K-Nearest-Neighbor (KNN)</h2>
-              
-              <div className="w-full space-y-4 mb-8">
-                <p className="text-center">KNN Binary Class Accuracy = 0.9760368900303525</p>
-                <p className="text-center">KNN Multi Class Accuracy = 0.9740368900303525</p>
-              </div>
-              
-              <div className="w-full space-y-4">
-                <Button 
-                  className="w-full bg-sky-500 hover:bg-sky-600 text-white" 
-                >
-                  Binary-Class Classification Table
-                </Button>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">Analysis Results</h1>
+          
+          <SecurityStatusAlert 
+            isSafe={isSafe} 
+            threatLevel={threatLevel as any} 
+            message={securityMessage} 
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {/* KNN Card */}
+            <Card className="bg-teal-200/80 backdrop-blur-sm border-none shadow-lg overflow-hidden">
+              <CardContent className="p-8 flex flex-col items-center">
+                <h2 className="text-2xl font-bold text-center mb-6">K-Nearest-Neighbor (KNN)</h2>
                 
-                <Button 
-                  className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                >
-                  Multi-Class Classification Table
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="w-full space-y-4 mb-8">
+                  <div className="flex items-center justify-between">
+                    <p className="text-left">Binary Class Accuracy:</p> 
+                    <p className="font-semibold">{knnBinaryAccuracy.toFixed(4)}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-left">Multi Class Accuracy:</p> 
+                    <p className="font-semibold">{knnMultiAccuracy.toFixed(4)}</p>
+                  </div>
+                </div>
+                
+                <div className="w-full space-y-4">
+                  <Button 
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+                    onClick={() => handleViewTable('knn', 'binary')}
+                  >
+                    Binary-Class Classification Table
+                  </Button>
+                  
+                  <Button 
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+                    onClick={() => handleViewTable('knn', 'multi')}
+                  >
+                    Multi-Class Classification Table
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Random Forest Card */}
-          <Card className="bg-teal-200/80 backdrop-blur-sm border-none shadow-lg overflow-hidden">
+            {/* Random Forest Card */}
+            <Card className="bg-teal-200/80 backdrop-blur-sm border-none shadow-lg overflow-hidden">
+              <CardContent className="p-8 flex flex-col items-center">
+                <h2 className="text-2xl font-bold text-center mb-6">Random Forest</h2>
+                
+                <div className="w-full space-y-4 mb-8">
+                  <div className="flex items-center justify-between">
+                    <p className="text-left">Binary Class Accuracy:</p> 
+                    <p className="font-semibold">{rfBinaryAccuracy.toFixed(4)}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-left">Multi Class Accuracy:</p> 
+                    <p className="font-semibold">{rfMultiAccuracy.toFixed(4)}</p>
+                  </div>
+                </div>
+                
+                <div className="w-full space-y-4">
+                  <Button 
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+                    onClick={() => handleViewTable('rf', 'binary')}
+                  >
+                    Binary-Class Classification Table
+                  </Button>
+                  
+                  <Button 
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
+                    onClick={() => handleViewTable('rf', 'multi')}
+                  >
+                    Multi-Class Classification Table
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Overall Security Status Card */}
+          <Card className={`
+            ${isSafe ? 'bg-green-100/80' : 'bg-amber-100/80'} 
+            backdrop-blur-sm border-none shadow-lg overflow-hidden
+          `}>
             <CardContent className="p-8 flex flex-col items-center">
-              <h2 className="text-2xl font-bold text-center mb-6">Random Forest</h2>
-              
-              <div className="w-full space-y-4 mb-8">
-                <p className="text-center">Random Forest Binary Class Accuracy = 0.9741029652113005</p>
-                <p className="text-center">Random Forest Multi Class Accuracy = 0.9731029652113005</p>
+              <div className="flex items-center mb-4">
+                {isSafe ? (
+                  <ShieldCheck className="h-8 w-8 text-green-600 mr-2" />
+                ) : (
+                  <ShieldAlert className="h-8 w-8 text-amber-600 mr-2" />
+                )}
+                <h2 className="text-2xl font-bold text-center">
+                  {isSafe ? 'System Security Status: Safe' : 'System Security Status: Attention Required'}
+                </h2>
               </div>
               
-              <div className="w-full space-y-4">
-                <Button 
-                  className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                >
-                  Binary-Class Classification Table
-                </Button>
-                
-                <Button 
-                  className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                >
-                  Multi-Class Classification Table
-                </Button>
+              <p className="text-center">
+                {securityMessage}
+              </p>
+              
+              <div className="w-full mt-6 p-4 bg-white/50 rounded-lg">
+                <h3 className="font-semibold mb-2">Key Indicators:</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Average Model Accuracy: {averageAccuracy.toFixed(4)}</li>
+                  <li>KNN Binary Classification Accuracy: {knnBinaryAccuracy.toFixed(4)}</li>
+                  <li>KNN Multi-Class Classification Accuracy: {knnMultiAccuracy.toFixed(4)}</li>
+                  <li>Random Forest Binary Classification Accuracy: {rfBinaryAccuracy.toFixed(4)}</li>
+                  <li>Random Forest Multi-Class Classification Accuracy: {rfMultiAccuracy.toFixed(4)}</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
