@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 
 const UploadPage = () => {
   const { isAuthenticated } = useAuth();
@@ -20,10 +21,65 @@ const UploadPage = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const algorithms = [
-    { value: "knn", label: "K-Nearest Neighbor (KNN)" },
-    { value: "randomForest", label: "Random Forest" },
+  // Expected columns for network security dataset
+  const requiredColumns = [
+    'duration',
+    'protocol_type',
+    'service',
+    'flag',
+    'src_bytes',
+    'dst_bytes',
+    'land',
+    'wrong_fragment',
+    'urgent'
   ];
+
+  const validateDataset = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const content = e.target.result as string;
+          const lines = content.split('\n');
+          if (lines.length < 2) {
+            toast.error("Dataset is empty or invalid");
+            resolve(false);
+            return;
+          }
+
+          // Check header
+          const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+          const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+          if (missingColumns.length > 0) {
+            toast.error(
+              "Invalid dataset format. Missing required columns: " + 
+              missingColumns.join(', ')
+            );
+            resolve(false);
+            return;
+          }
+
+          // Validate at least one data row
+          if (lines[1].split(',').length !== headers.length) {
+            toast.error("Data format is invalid");
+            resolve(false);
+            return;
+          }
+
+          resolve(true);
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error("Error reading file");
+        resolve(false);
+      };
+
+      reader.readAsText(file);
+    });
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -42,7 +98,7 @@ const UploadPage = () => {
     }, 2000);
   };
 
-  const handlePredict = () => {
+  const handlePredict = async () => {
     if (!selectedFiles) {
       toast.error("Please select a file first");
       return;
@@ -53,7 +109,14 @@ const UploadPage = () => {
       return;
     }
 
-    toast.success("Prediction started!");
+    // Validate the dataset before processing
+    const isValid = await validateDataset(selectedFiles[0]);
+    
+    if (!isValid) {
+      return;
+    }
+
+    toast.success("Dataset validated successfully! Starting prediction...");
     
     // Simulate processing
     setTimeout(() => {
@@ -69,9 +132,27 @@ const UploadPage = () => {
       <main className="flex-1 py-12 px-6 md:px-10">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-10 text-center">Upload Dataset Files</h1>
+
+          <div className="mb-8 bg-amber-100 p-4 rounded-lg border border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-amber-800 mb-2">Dataset Requirements</h3>
+                <p className="text-amber-700 mb-2">
+                  Please ensure your dataset matches the required format for network security analysis.
+                  The CSV file must include the following columns:
+                </p>
+                <ul className="list-disc list-inside text-sm text-amber-700 space-y-1">
+                  {requiredColumns.map(col => (
+                    <li key={col}>{col}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Random Row Predict */}
+            {/* Random Row Predict Card */}
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Random Row Predict</CardTitle>
@@ -85,11 +166,8 @@ const UploadPage = () => {
                     <SelectValue placeholder="Select Algorithm" />
                   </SelectTrigger>
                   <SelectContent>
-                    {algorithms.map(algo => (
-                      <SelectItem key={algo.value} value={algo.value}>
-                        {algo.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="knn">K-Nearest Neighbor (KNN)</SelectItem>
+                    <SelectItem value="randomForest">Random Forest</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -102,7 +180,7 @@ const UploadPage = () => {
               </CardContent>
             </Card>
 
-            {/* Open CSV */}
+            {/* Open CSV Card */}
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Open CSV</CardTitle>
@@ -116,11 +194,8 @@ const UploadPage = () => {
                     <SelectValue placeholder="Select Algorithm" />
                   </SelectTrigger>
                   <SelectContent>
-                    {algorithms.map(algo => (
-                      <SelectItem key={algo.value} value={algo.value}>
-                        {algo.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="knn">K-Nearest Neighbor (KNN)</SelectItem>
+                    <SelectItem value="randomForest">Random Forest</SelectItem>
                   </SelectContent>
                 </Select>
                 
