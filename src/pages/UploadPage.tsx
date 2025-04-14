@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, FileType } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { classifyDataset } from '@/services/DatasetClassifier';
 
 const UploadPage = () => {
   const { isAuthenticated } = useAuth();
@@ -20,6 +21,7 @@ const UploadPage = () => {
   const [isRequirementsOpen, setIsRequirementsOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
+  const [classificationInProgress, setClassificationInProgress] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -102,72 +104,41 @@ const UploadPage = () => {
       reader.readAsText(file);
     });
   };
-  
-  const validateDataset = async (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
+
+  const runMLClassifier = async (file: File): Promise<boolean> => {
+    setClassificationInProgress(true);
+    try {
+      const classificationResult = await classifyDataset(file);
       
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          const content = e.target.result as string;
-          const lines = content.split('\n');
-          
-          // Less strict validation - just check that the file is not empty
-          // and has at least some data structure
-          if (lines.length < 2) {
-            toast.error("Dataset is empty or invalid");
-            resolve(false);
-            return;
-          }
-
-          // Get headers (case insensitive)
-          const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-          
-          // Check if this looks like network security data
-          // We'll look for at least 3 of our required columns to determine if this is relevant data
-          const foundColumns = requiredColumns.filter(col => headers.includes(col));
-          
-          if (foundColumns.length < 3) {
-            // This doesn't look like network security data at all
-            toast.error(
-              "The uploaded file doesn't appear to be network security data. " +
-              "For demo purposes, you can still proceed."
-            );
-            // Still return true to allow the demo to proceed
-            resolve(true);
-            return;
-          }
-          
-          // For authentic network security data, verify all required columns
-          if (foundColumns.length < requiredColumns.length) {
-            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-            toast.warning(
-              "Some recommended columns are missing: " + 
-              missingColumns.join(', ') + ". " +
-              "Analysis may be less accurate, but you can still proceed."
-            );
-            // Still allow the demo to proceed
-            resolve(true);
-            return;
-          }
-          
-          // Success - all columns present
-          toast.success("Valid network security dataset format detected");
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      };
-
-      reader.onerror = () => {
-        toast.error("Error reading file");
-        resolve(false);
-      };
-
-      reader.readAsText(file);
-    });
+      if (!classificationResult.isCybersecurityRelated) {
+        toast.error('Upload failed: Dataset not recognized as cybersecurity or intrusion detection-related. Please upload a valid cyber threat dataset.');
+        console.log('[ML Classification Failed]', {
+          confidence: classificationResult.confidence,
+          matchedKeywords: classificationResult.matchedKeywords,
+          matchedPatterns: classificationResult.matchedPatterns,
+          debugInfo: classificationResult.debugInfo
+        });
+        return false;
+      }
+      
+      // Log successful classification for debugging
+      console.log('[ML Classification Passed]', {
+        confidence: classificationResult.confidence,
+        matchedKeywords: classificationResult.matchedKeywords,
+        matchedPatterns: classificationResult.matchedPatterns,
+        debugInfo: classificationResult.debugInfo
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("ML Classification error:", error);
+      toast.error('Error analyzing dataset format');
+      return false;
+    } finally {
+      setClassificationInProgress(false);
+    }
   };
-
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles(e.target.files);
@@ -212,11 +183,11 @@ const UploadPage = () => {
       return;
     }
 
-    // Validate the dataset before processing
+    // First, run the ML classifier to check if this is a cybersecurity dataset
     setIsAnalyzing(true);
-    const isValid = await validateDataset(selectedFiles[0]);
+    const isValidCyberDataset = await runMLClassifier(selectedFiles[0]);
     
-    if (!isValid) {
+    if (!isValidCyberDataset) {
       setIsAnalyzing(false);
       return;
     }
@@ -242,6 +213,9 @@ const UploadPage = () => {
     }
   };
 
+  // Available file types hint
+  const acceptableFileTypes = ".csv,.json";
+
   return (
     <div className="min-h-screen flex flex-col bg-blue-50">
       <Navbar />
@@ -251,8 +225,6 @@ const UploadPage = () => {
           <h1 className="text-3xl font-bold mb-10 text-center">Upload Dataset Files</h1>
 
           <Collapsible
-            open={isRequirementsOpen}
-            onOpenChange={setIsRequirementsOpen}
             className="mb-8 bg-amber-100 p-4 rounded-lg border border-amber-200"
           >
             <div className="flex justify-between items-center">
@@ -273,14 +245,20 @@ const UploadPage = () => {
             
             <CollapsibleContent className="mt-2">
               <p className="text-amber-700 mb-2">
-                Please ensure your dataset matches the required format for network security analysis.
-                The CSV file must include the following columns:
+                Please upload cybersecurity or network intrusion detection datasets. 
+                The system accepts CSV and JSON formats with the following attributes:
               </p>
               <ul className="list-disc list-inside text-sm text-amber-700 space-y-1">
-                {requiredColumns.map(col => (
-                  <li key={col}>{col}</li>
-                ))}
+                <li>Network traffic features (e.g., IP addresses, ports, protocols)</li>
+                <li>Attack classification labels (normal, DoS, R2L, U2R, Probe, etc.)</li>
+                <li>Traffic metrics (duration, bytes transferred, packets, etc.)</li>
+                <li>Connection statistics and flags</li>
               </ul>
+              
+              <div className="mt-3 flex items-center gap-2">
+                <FileType className="h-4 w-4 text-amber-700" />
+                <span className="text-sm text-amber-700">Supported formats: CSV, JSON</span>
+              </div>
             </CollapsibleContent>
           </Collapsible>
           
@@ -317,9 +295,9 @@ const UploadPage = () => {
             {/* Open CSV Card */}
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>Open CSV</CardTitle>
+                <CardTitle>Open CSV or JSON</CardTitle>
                 <CardDescription>
-                  It will take a CSV file of rows ranging from (1..500.. n rows) and update the file with type of attack for each row.
+                  It will analyze your cybersecurity dataset file and predict attack types for each row.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -334,11 +312,11 @@ const UploadPage = () => {
                 </Select>
                 
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <label htmlFor="csv-file" className="sr-only">Choose file</label>
+                  <label htmlFor="dataset-file" className="sr-only">Choose file</label>
                   <Input
-                    id="csv-file"
+                    id="dataset-file"
                     type="file"
-                    accept=".csv"
+                    accept={acceptableFileTypes}
                     onChange={handleFileChange}
                   />
                   {uploadedFileName && (
@@ -349,9 +327,9 @@ const UploadPage = () => {
                 <Button 
                   className="w-full bg-cyan-500 hover:bg-cyan-600" 
                   onClick={handlePredict}
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || classificationInProgress}
                 >
-                  {isAnalyzing ? "Analyzing..." : "Predict"}
+                  {isAnalyzing || classificationInProgress ? "Analyzing..." : "Predict"}
                 </Button>
               </CardContent>
             </Card>
@@ -363,10 +341,10 @@ const UploadPage = () => {
               <div>
                 <h3 className="font-semibold text-blue-800 mb-2">Upload Tips</h3>
                 <p className="text-blue-700">
-                  The system will analyze your data using machine learning algorithms to detect potential 
-                  security threats. For the best results, ensure your dataset follows the required format
-                  and contains complete information. The analysis evaluates factors like traffic patterns, 
-                  unusual access attempts, and suspicious data transfers.
+                  The system uses machine learning to validate and analyze your cybersecurity datasets. 
+                  For best results, ensure your files contain network traffic patterns, attack signatures, 
+                  or intrusion detection data. The system will automatically detect if your dataset is 
+                  related to cybersecurity before processing, with a minimum 80% confidence threshold.
                 </p>
               </div>
             </div>
