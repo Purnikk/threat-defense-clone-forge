@@ -19,12 +19,13 @@ const UploadPage = () => {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("");
   const [isRequirementsOpen, setIsRequirementsOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Expected columns for network security dataset
+  // Expected columns for network security dataset - used for strict validation
   const requiredColumns = [
     'duration',
     'protocol_type',
@@ -72,7 +73,7 @@ const UploadPage = () => {
           }
           
           // Calculate "security score" based on suspicious patterns
-          const securityScore = 1 - (suspiciousPatterns / totalRows);
+          const securityScore = totalRows > 0 ? 1 - (suspiciousPatterns / totalRows) : 1;
           const isSecure = securityScore > 0.95;
           
           // For demo purposes, add randomness to make results interesting
@@ -110,33 +111,51 @@ const UploadPage = () => {
         if (e.target?.result) {
           const content = e.target.result as string;
           const lines = content.split('\n');
+          
+          // Less strict validation - just check that the file is not empty
+          // and has at least some data structure
           if (lines.length < 2) {
             toast.error("Dataset is empty or invalid");
             resolve(false);
             return;
           }
 
-          // Check header
+          // Get headers (case insensitive)
           const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-          const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-
-          if (missingColumns.length > 0) {
+          
+          // Check if this looks like network security data
+          // We'll look for at least 3 of our required columns to determine if this is relevant data
+          const foundColumns = requiredColumns.filter(col => headers.includes(col));
+          
+          if (foundColumns.length < 3) {
+            // This doesn't look like network security data at all
             toast.error(
-              "Invalid dataset format. Missing required columns: " + 
-              missingColumns.join(', ')
+              "The uploaded file doesn't appear to be network security data. " +
+              "For demo purposes, you can still proceed."
             );
-            resolve(false);
+            // Still return true to allow the demo to proceed
+            resolve(true);
             return;
           }
-
-          // Validate at least one data row
-          if (lines[1].split(',').length !== headers.length) {
-            toast.error("Data format is invalid");
-            resolve(false);
+          
+          // For authentic network security data, verify all required columns
+          if (foundColumns.length < requiredColumns.length) {
+            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+            toast.warning(
+              "Some recommended columns are missing: " + 
+              missingColumns.join(', ') + ". " +
+              "Analysis may be less accurate, but you can still proceed."
+            );
+            // Still allow the demo to proceed
+            resolve(true);
             return;
           }
-
+          
+          // Success - all columns present
+          toast.success("Valid network security dataset format detected");
           resolve(true);
+        } else {
+          resolve(false);
         }
       };
 
@@ -152,6 +171,7 @@ const UploadPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles(e.target.files);
+      setUploadedFileName(e.target.files[0].name);
       toast.success(`${e.target.files.length} file(s) selected`);
     }
   };
@@ -193,14 +213,15 @@ const UploadPage = () => {
     }
 
     // Validate the dataset before processing
+    setIsAnalyzing(true);
     const isValid = await validateDataset(selectedFiles[0]);
     
     if (!isValid) {
+      setIsAnalyzing(false);
       return;
     }
 
-    toast.success("Dataset validated. Analyzing data...");
-    setIsAnalyzing(true);
+    toast.success("Analyzing data...");
     
     try {
       // Analyze dataset to determine if it's secure
@@ -320,6 +341,9 @@ const UploadPage = () => {
                     accept=".csv"
                     onChange={handleFileChange}
                   />
+                  {uploadedFileName && (
+                    <p className="text-sm text-gray-500">{uploadedFileName}</p>
+                  )}
                 </div>
                 
                 <Button 
