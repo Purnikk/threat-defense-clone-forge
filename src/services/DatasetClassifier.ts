@@ -36,7 +36,13 @@ const CYBER_KEYWORDS = [
   'srv_diff_host_rate', 'dst_host_count', 'dst_host_srv_count',
   'dst_host_same_srv_rate', 'dst_host_diff_srv_rate', 'dst_host_same_src_port_rate',
   'dst_host_srv_diff_host_rate', 'dst_host_serror_rate', 'dst_host_srv_serror_rate',
-  'dst_host_rerror_rate', 'dst_host_srv_rerror_rate'
+  'dst_host_rerror_rate', 'dst_host_srv_rerror_rate',
+  
+  // Additional keywords from the Python example
+  'authentication', 'encryption', 'breach', 'hacking', 'cyber',
+  'token', 'validation', 'security', 'compromise', 'threat_intelligence',
+  'zero_day', 'mitigation', 'cyber_defense', 'breach', 'infiltration',
+  'exfiltration', 'credential', 'authorization'
 ];
 
 // Regular expressions for structural patterns in cybersecurity data
@@ -52,7 +58,13 @@ const PATTERN_REGEXES = [
   // Typical attack labels
   /\b(normal|attack|anomaly|benign|malicious)\b/i,
   // DoS, R2L, U2R, Probe attack classifications
-  /\b(dos|r2l|u2r|probe)\b/i
+  /\b(dos|r2l|u2r|probe)\b/i,
+  // Hash patterns (MD5, SHA)
+  /\b[a-f0-9]{32}\b/i,  // MD5
+  /\b[a-f0-9]{40}\b/i,  // SHA-1
+  /\b[a-f0-9]{64}\b/i,  // SHA-256
+  // URL patterns
+  /https?:\/\/[^\s]+/
 ];
 
 interface ClassificationResult {
@@ -73,7 +85,11 @@ export const classifyDataset = async (file: File): Promise<ClassificationResult>
     confidence: 0,
     matchedKeywords: [],
     matchedPatterns: [],
-    debugInfo: {}
+    debugInfo: {
+      fileName: file.name,
+      fileSize: file.size,
+      processingStart: new Date().toISOString()
+    }
   };
 
   try {
@@ -99,23 +115,27 @@ export const classifyDataset = async (file: File): Promise<ClassificationResult>
     }
     
     // Extract headers and sample data for analysis
-    const { headers, sampleData } = extractDataStructure(parsedData, fileExtension);
+    const { headers, sampleData, allText } = extractDataStructure(parsedData, fileExtension || '', content);
     
-    // Perform keyword analysis on headers
-    const keywordResults = analyzeKeywords(headers);
+    // Perform keyword analysis on headers and sample data (more comprehensive)
+    const keywordResults = analyzeKeywords(headers, allText);
     result.matchedKeywords = keywordResults.matchedKeywords;
     
     // Perform pattern matching on sample data
-    const patternResults = analyzePatterns(sampleData);
+    const patternResults = analyzePatterns(sampleData.concat(allText));
     result.matchedPatterns = patternResults.matchedPatterns;
     
     // Calculate overall confidence score
     const keywordConfidence = calculateKeywordConfidence(keywordResults.matchedKeywords);
     const patternConfidence = calculatePatternConfidence(patternResults.matchedPatterns);
     
-    // Weighted combination of scores (keywords have higher weight than patterns)
-    result.confidence = (keywordConfidence * 0.7) + (patternConfidence * 0.3);
-    result.isCybersecurityRelated = result.confidence >= 0.8; // 80% threshold
+    // More sophisticated confidence calculation with diminishing returns
+    // Keywords have higher weight (0.7) than patterns (0.3)
+    result.confidence = Math.min(1.0, (keywordConfidence * 0.7) + (patternConfidence * 0.3));
+    
+    // Adjust threshold based on keyword count (similar to Python example)
+    const threshold = determineThreshold(keywordResults.matchedKeywords.length);
+    result.isCybersecurityRelated = result.confidence >= threshold;
     
     // Add debug information
     result.debugInfo = {
@@ -123,8 +143,10 @@ export const classifyDataset = async (file: File): Promise<ClassificationResult>
       analyzedHeaders: headers,
       keywordConfidence,
       patternConfidence,
+      threshold,
       overallConfidence: result.confidence,
-      sampleDataCount: sampleData.length
+      sampleDataCount: sampleData.length,
+      processingEnd: new Date().toISOString()
     };
     
     // Log for developer debugging
@@ -136,7 +158,7 @@ export const classifyDataset = async (file: File): Promise<ClassificationResult>
     
     return result;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in dataset classification:", error);
     // Return conservative result
     return {
@@ -144,7 +166,12 @@ export const classifyDataset = async (file: File): Promise<ClassificationResult>
       confidence: 0,
       matchedKeywords: [],
       matchedPatterns: [],
-      debugInfo: { error: error.toString() }
+      debugInfo: { 
+        error: error.toString(),
+        fileName: file.name,
+        fileSize: file.size,
+        processingEnd: new Date().toISOString()
+      }
     };
   }
 };
@@ -175,14 +202,37 @@ const parseCSV = (content: string): any[] => {
   const lines = content.split('\n').filter(line => line.trim() !== '');
   if (lines.length === 0) return [];
   
-  const headers = lines[0].split(',').map(h => h.trim());
+  // Handle quoted fields properly (basic implementation)
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+  
+  const headers = parseCSVLine(lines[0]);
   const data = [];
   
-  for (let i = 1; i < Math.min(lines.length, 101); i++) {  // Parse up to 100 rows
+  for (let i = 1; i < Math.min(lines.length, 201); i++) {  // Parse up to 200 rows
     const line = lines[i].trim();
     if (!line) continue;
     
-    const values = line.split(',');
+    const values = parseCSVLine(line);
     const row: Record<string, string> = {};
     
     headers.forEach((header, index) => {
@@ -198,10 +248,12 @@ const parseCSV = (content: string): any[] => {
 // Extract data structure (headers and sample data) from the parsed content
 const extractDataStructure = (
   parsedData: any, 
-  fileType: string
-): { headers: string[], sampleData: string[] } => {
+  fileType: string,
+  rawContent: string
+): { headers: string[], sampleData: string[], allText: string } => {
   let headers: string[] = [];
   let sampleData: string[] = [];
+  let allText = rawContent.toLowerCase();
   
   if (fileType === 'json') {
     if (Array.isArray(parsedData) && parsedData.length > 0) {
@@ -209,7 +261,7 @@ const extractDataStructure = (
       headers = Object.keys(parsedData[0]);
       
       // Convert sample data to string for pattern matching
-      sampleData = parsedData.slice(0, 100).map(item => {
+      sampleData = parsedData.slice(0, 200).map(item => {
         return Object.values(item).join(' ');
       });
     } else {
@@ -219,7 +271,7 @@ const extractDataStructure = (
           headers = [...new Set([...headers, ...Object.keys(obj[0])])];
           sampleData = [
             ...sampleData, 
-            ...obj.slice(0, 100).map(item => Object.values(item).join(' '))
+            ...obj.slice(0, 200).map(item => Object.values(item).join(' '))
           ];
         } else if (typeof obj === 'object' && obj !== null) {
           Object.keys(obj).forEach(key => {
@@ -241,19 +293,29 @@ const extractDataStructure = (
   // Convert all headers to lowercase for case-insensitive comparison
   headers = headers.map(h => h.toLowerCase());
   
-  return { headers, sampleData };
+  return { headers, sampleData, allText };
 };
 
-// Analyze headers for cybersecurity keywords
-const analyzeKeywords = (headers: string[]): { matchedKeywords: string[] } => {
+// Analyze headers and content for cybersecurity keywords
+const analyzeKeywords = (headers: string[], allText: string): { matchedKeywords: string[] } => {
   const matchedKeywords: string[] = [];
   
+  // Check headers (more important match)
   headers.forEach(header => {
     CYBER_KEYWORDS.forEach(keyword => {
-      if (header.includes(keyword)) {
+      if (header.includes(keyword) && !matchedKeywords.includes(keyword)) {
         matchedKeywords.push(keyword);
       }
     });
+  });
+  
+  // Check full content (similar to Python example's full text search)
+  CYBER_KEYWORDS.forEach(keyword => {
+    // Use word boundary similar to Python's re.search(r"\b{kw}\b")
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(allText) && !matchedKeywords.includes(keyword)) {
+      matchedKeywords.push(keyword);
+    }
   });
   
   return { matchedKeywords: [...new Set(matchedKeywords)] }; // Remove duplicates
@@ -276,16 +338,16 @@ const analyzePatterns = (sampleData: string[]): { matchedPatterns: string[] } =>
 
 // Calculate confidence based on keyword matches
 const calculateKeywordConfidence = (matchedKeywords: string[]): number => {
-  // More keyword matches = higher confidence
-  // Certain keywords might be weighted more heavily in a real implementation
+  // More keyword matches = higher confidence with diminishing returns
   const uniqueMatches = new Set(matchedKeywords).size;
   
-  // We need at least 3 keyword matches to be somewhat confident
+  // Similar to Python example's boolean check but with gradation
   if (uniqueMatches === 0) return 0;
-  if (uniqueMatches === 1) return 0.3;
-  if (uniqueMatches === 2) return 0.6;
+  if (uniqueMatches === 1) return 0.4;
+  if (uniqueMatches === 2) return 0.65;
   if (uniqueMatches >= 3 && uniqueMatches < 5) return 0.85;
-  return 0.95; // 5+ matches is very confident
+  if (uniqueMatches >= 5 && uniqueMatches < 8) return 0.9; 
+  return 0.95; // 8+ matches is very confident
 };
 
 // Calculate confidence based on pattern matches
@@ -295,5 +357,16 @@ const calculatePatternConfidence = (matchedPatterns: string[]): number => {
   // Even one pattern match is significant
   if (uniqueMatches === 0) return 0;
   if (uniqueMatches === 1) return 0.7;
-  return 0.9; // 2+ pattern matches is very confident
+  if (uniqueMatches === 2) return 0.85;
+  return 0.9; // 3+ pattern matches is very confident
 };
+
+// Determine classification threshold based on keyword count
+const determineThreshold = (keywordCount: number): number => {
+  // Fewer keywords found = stricter threshold
+  if (keywordCount >= 8) return 0.75; // Many keywords, lower threshold
+  if (keywordCount >= 5) return 0.78; // Several keywords
+  if (keywordCount >= 3) return 0.8;  // Standard case
+  return 0.85; // Few keywords, be more strict
+};
+

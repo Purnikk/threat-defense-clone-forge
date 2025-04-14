@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, FileType } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { classifyDataset } from '@/services/DatasetClassifier';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const UploadPage = () => {
   const { isAuthenticated } = useAuth();
@@ -22,6 +23,8 @@ const UploadPage = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [classificationInProgress, setClassificationInProgress] = useState(false);
+  const [classificationResults, setClassificationResults] = useState<any>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -110,6 +113,9 @@ const UploadPage = () => {
     try {
       const classificationResult = await classifyDataset(file);
       
+      // Store full results for potential debugging
+      setClassificationResults(classificationResult);
+      
       if (!classificationResult.isCybersecurityRelated) {
         toast.error('Upload failed: Dataset not recognized as cybersecurity or intrusion detection-related. Please upload a valid cyber threat dataset.');
         console.log('[ML Classification Failed]', {
@@ -129,6 +135,7 @@ const UploadPage = () => {
         debugInfo: classificationResult.debugInfo
       });
       
+      toast.success('Dataset validated as cybersecurity-related');
       return true;
     } catch (error) {
       console.error("ML Classification error:", error);
@@ -143,6 +150,7 @@ const UploadPage = () => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles(e.target.files);
       setUploadedFileName(e.target.files[0].name);
+      setClassificationResults(null); // Reset previous results
       toast.success(`${e.target.files.length} file(s) selected`);
     }
   };
@@ -216,6 +224,9 @@ const UploadPage = () => {
   // Available file types hint
   const acceptableFileTypes = ".csv,.json";
 
+  // Toggle debug information display
+  const toggleDebugInfo = () => setShowDebugInfo(!showDebugInfo);
+
   return (
     <div className="min-h-screen flex flex-col bg-blue-50">
       <Navbar />
@@ -225,6 +236,8 @@ const UploadPage = () => {
           <h1 className="text-3xl font-bold mb-10 text-center">Upload Dataset Files</h1>
 
           <Collapsible
+            open={isRequirementsOpen}
+            onOpenChange={setIsRequirementsOpen}
             className="mb-8 bg-amber-100 p-4 rounded-lg border border-amber-200"
           >
             <div className="flex justify-between items-center">
@@ -253,6 +266,7 @@ const UploadPage = () => {
                 <li>Attack classification labels (normal, DoS, R2L, U2R, Probe, etc.)</li>
                 <li>Traffic metrics (duration, bytes transferred, packets, etc.)</li>
                 <li>Connection statistics and flags</li>
+                <li>Authentication and validation metrics</li>
               </ul>
               
               <div className="mt-3 flex items-center gap-2">
@@ -349,6 +363,37 @@ const UploadPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Debug Information Panel (for developers) */}
+          {classificationResults && (
+            <div className="mt-6">
+              <Button 
+                variant="outline" 
+                onClick={toggleDebugInfo}
+                className="text-xs text-gray-500 mb-2"
+              >
+                {showDebugInfo ? "Hide" : "Show"} Classification Debug Info
+              </Button>
+              
+              {showDebugInfo && (
+                <Alert>
+                  <AlertTitle>Dataset Classification Results</AlertTitle>
+                  <AlertDescription>
+                    <pre className="mt-2 whitespace-pre-wrap text-xs bg-gray-100 p-2 rounded">
+                      {JSON.stringify({
+                        fileName: classificationResults.debugInfo?.fileName || uploadedFileName,
+                        isCybersecurityRelated: classificationResults.isCybersecurityRelated,
+                        confidence: classificationResults.confidence,
+                        matchedKeywords: classificationResults.matchedKeywords,
+                        matchedPatterns: classificationResults.matchedPatterns.length,
+                        threshold: classificationResults.debugInfo?.threshold || 0.8
+                      }, null, 2)}
+                    </pre>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
