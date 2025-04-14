@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, FileType } from 'lucide-react';
+import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, FileType, Loader } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { classifyDataset } from '@/services/DatasetClassifier';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -30,7 +29,6 @@ const UploadPage = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Expected columns for network security dataset - used for strict validation
   const requiredColumns = [
     'duration',
     'protocol_type',
@@ -52,36 +50,26 @@ const UploadPage = () => {
           const content = e.target.result as string;
           const lines = content.split('\n');
           
-          // Basic analysis: check for potential attack patterns in the data
           let suspiciousPatterns = 0;
-          let totalRows = lines.length - 1; // Subtract header
+          let totalRows = lines.length - 1;
           
-          // Skip header row
           for (let i = 1; i < lines.length; i++) {
             const row = lines[i].split(',');
-            if (row.length <= 1) continue; // Skip empty lines
+            if (row.length <= 1) continue;
             
-            // Check for suspicious patterns (this is simplified for demo purposes)
-            // In a real scenario, you would use actual machine learning models
-            
-            // Check for high source bytes (potential data exfiltration)
             const srcBytes = parseInt(row[4], 10) || 0;
             if (srcBytes > 10000) suspiciousPatterns++;
             
-            // Check for unusual protocol flags
             const flag = row[3]?.toLowerCase();
             if (flag === "s0" || flag === "rej") suspiciousPatterns++;
             
-            // Check for suspicious service
             const service = row[2]?.toLowerCase();
             if (service === "private" || service === "http_443") suspiciousPatterns++;
           }
           
-          // Calculate "security score" based on suspicious patterns
           const securityScore = totalRows > 0 ? 1 - (suspiciousPatterns / totalRows) : 1;
           const isSecure = securityScore > 0.95;
           
-          // For demo purposes, add randomness to make results interesting
           const accuracy = 0.85 + (Math.random() * 0.13);
           
           resolve({
@@ -113,7 +101,6 @@ const UploadPage = () => {
     try {
       const classificationResult = await classifyDataset(file);
       
-      // Store full results for potential debugging
       setClassificationResults(classificationResult);
       
       if (!classificationResult.isCybersecurityRelated) {
@@ -127,7 +114,6 @@ const UploadPage = () => {
         return false;
       }
       
-      // Log successful classification for debugging
       console.log('[ML Classification Passed]', {
         confidence: classificationResult.confidence,
         matchedKeywords: classificationResult.matchedKeywords,
@@ -150,7 +136,7 @@ const UploadPage = () => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles(e.target.files);
       setUploadedFileName(e.target.files[0].name);
-      setClassificationResults(null); // Reset previous results
+      setClassificationResults(null);
       toast.success(`${e.target.files.length} file(s) selected`);
     }
   };
@@ -164,12 +150,10 @@ const UploadPage = () => {
     setIsAnalyzing(true);
     toast.info("Analyzing random dataset...");
     
-    // Simulate processing
     setTimeout(() => {
       setIsAnalyzing(false);
       toast.success("Analysis completed!");
       
-      // Random factor to occasionally show unsafe results for demo purposes
       const showUnsafe = Math.random() > 0.7;
       
       if (showUnsafe) {
@@ -177,7 +161,7 @@ const UploadPage = () => {
       } else {
         navigate('/results');
       }
-    }, 2000);
+    }, 2500);
   };
 
   const handlePredict = async () => {
@@ -191,7 +175,6 @@ const UploadPage = () => {
       return;
     }
 
-    // First, run the ML classifier to check if this is a cybersecurity dataset
     setIsAnalyzing(true);
     const isValidCyberDataset = await runMLClassifier(selectedFiles[0]);
     
@@ -203,13 +186,11 @@ const UploadPage = () => {
     toast.success("Analyzing data...");
     
     try {
-      // Analyze dataset to determine if it's secure
       const analysisResult = await analyzeDataset(selectedFiles[0]);
       
       setIsAnalyzing(false);
       toast.success("Analysis completed!");
       
-      // Navigate to appropriate results page based on analysis
       if (analysisResult.isSecure) {
         navigate('/results');
       } else {
@@ -221,10 +202,8 @@ const UploadPage = () => {
     }
   };
 
-  // Available file types hint
   const acceptableFileTypes = ".csv,.json";
 
-  // Toggle debug information display
   const toggleDebugInfo = () => setShowDebugInfo(!showDebugInfo);
 
   return (
@@ -277,7 +256,6 @@ const UploadPage = () => {
           </Collapsible>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Random Row Predict Card */}
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Random Row Predict</CardTitle>
@@ -301,12 +279,18 @@ const UploadPage = () => {
                   onClick={handleRandomRowPredict}
                   disabled={isAnalyzing}
                 >
-                  {isAnalyzing ? "Analyzing..." : "Predict"}
+                  {isAnalyzing ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    "Predict"
+                  )}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Open CSV Card */}
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Open CSV or JSON</CardTitle>
@@ -343,7 +327,14 @@ const UploadPage = () => {
                   onClick={handlePredict}
                   disabled={isAnalyzing || classificationInProgress}
                 >
-                  {isAnalyzing || classificationInProgress ? "Analyzing..." : "Predict"}
+                  {isAnalyzing || classificationInProgress ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    "Predict"
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -364,7 +355,6 @@ const UploadPage = () => {
             </div>
           </div>
 
-          {/* Debug Information Panel (for developers) */}
           {classificationResults && (
             <div className="mt-6">
               <Button 
