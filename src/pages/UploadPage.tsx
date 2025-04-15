@@ -24,6 +24,7 @@ const UploadPage = () => {
   const [classificationInProgress, setClassificationInProgress] = useState(false);
   const [classificationResults, setClassificationResults] = useState<any>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -147,21 +148,26 @@ const UploadPage = () => {
       return;
     }
     
-    setIsAnalyzing(true);
+    setIsBuffering(true);
     toast.info("Analyzing random dataset...");
     
     setTimeout(() => {
-      setIsAnalyzing(false);
-      toast.success("Analysis completed!");
+      setIsAnalyzing(true);
       
-      const showUnsafe = Math.random() > 0.7;
-      
-      if (showUnsafe) {
-        navigate('/unsafe-example');
-      } else {
-        navigate('/results');
-      }
-    }, 2500);
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setIsBuffering(false);
+        toast.success("Analysis completed!");
+        
+        const showUnsafe = Math.random() > 0.7;
+        
+        if (showUnsafe) {
+          navigate('/unsafe-example');
+        } else {
+          navigate('/results');
+        }
+      }, 1000);
+    }, 2000);
   };
 
   const handlePredict = async () => {
@@ -175,31 +181,40 @@ const UploadPage = () => {
       return;
     }
 
-    setIsAnalyzing(true);
-    const isValidCyberDataset = await runMLClassifier(selectedFiles[0]);
+    setIsBuffering(true);
     
-    if (!isValidCyberDataset) {
-      setIsAnalyzing(false);
-      return;
-    }
-
-    toast.success("Analyzing data...");
-    
-    try {
-      const analysisResult = await analyzeDataset(selectedFiles[0]);
+    setTimeout(async () => {
+      setIsAnalyzing(true);
+      const isValidCyberDataset = await runMLClassifier(selectedFiles[0]);
       
-      setIsAnalyzing(false);
-      toast.success("Analysis completed!");
-      
-      if (analysisResult.isSecure) {
-        navigate('/results');
-      } else {
-        navigate('/unsafe-example');
+      if (!isValidCyberDataset) {
+        setIsAnalyzing(false);
+        setIsBuffering(false);
+        return;
       }
-    } catch (error) {
-      setIsAnalyzing(false);
-      toast.error("Error analyzing dataset");
-    }
+
+      toast.success("Analyzing data...");
+      
+      try {
+        const analysisResult = await analyzeDataset(selectedFiles[0]);
+        
+        setTimeout(() => {
+          setIsAnalyzing(false);
+          setIsBuffering(false);
+          toast.success("Analysis completed!");
+          
+          if (analysisResult.isSecure) {
+            navigate('/results');
+          } else {
+            navigate('/unsafe-example');
+          }
+        }, 1000);
+      } catch (error) {
+        setIsAnalyzing(false);
+        setIsBuffering(false);
+        toast.error("Error analyzing dataset");
+      }
+    }, 2000);
   };
 
   const acceptableFileTypes = ".csv,.json";
@@ -277,12 +292,12 @@ const UploadPage = () => {
                 <Button 
                   className="w-full bg-cyan-500 hover:bg-cyan-600" 
                   onClick={handleRandomRowPredict}
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || isBuffering}
                 >
-                  {isAnalyzing ? (
+                  {isBuffering || isAnalyzing ? (
                     <>
                       <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
+                      {isBuffering ? "Processing..." : "Analyzing..."}
                     </>
                   ) : (
                     "Predict"
@@ -325,12 +340,12 @@ const UploadPage = () => {
                 <Button 
                   className="w-full bg-cyan-500 hover:bg-cyan-600" 
                   onClick={handlePredict}
-                  disabled={isAnalyzing || classificationInProgress}
+                  disabled={isAnalyzing || classificationInProgress || isBuffering}
                 >
-                  {isAnalyzing || classificationInProgress ? (
+                  {isBuffering || isAnalyzing || classificationInProgress ? (
                     <>
                       <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
+                      {isBuffering ? "Processing..." : "Analyzing..."}
                     </>
                   ) : (
                     "Predict"

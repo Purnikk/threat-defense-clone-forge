@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser({ email, username: email.split('@')[0] });
       localStorage.setItem('user', JSON.stringify({ email, username: email.split('@')[0] }));
       toast.success("Login successful!");
-      navigate('/threats');
+      navigate('/upload'); // Changed from '/threats' to '/upload'
     }
   };
 
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser({ email, username: email.split('@')[0] });
       localStorage.setItem('user', JSON.stringify({ email, username: email.split('@')[0] }));
       toast.success("Account created successfully!");
-      navigate('/threats');
+      navigate('/upload'); // Changed from '/threats' to '/upload'
     }
   };
 
