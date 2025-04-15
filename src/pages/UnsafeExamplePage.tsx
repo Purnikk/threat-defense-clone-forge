@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import SecurityStatusAlert from '@/components/SecurityStatusAlert';
-import { ShieldX, AlertTriangle, AlertCircle, Ban } from 'lucide-react';
+import { ShieldX, AlertTriangle, Ban } from 'lucide-react';
 
 const UnsafeExamplePage = () => {
   const { isAuthenticated } = useAuth();
@@ -17,13 +17,12 @@ const UnsafeExamplePage = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Simulated low accuracy scores for unsafe example
+  // Simulated low accuracy scores for unsafe detection
   const knnBinaryAccuracy = 0.7260368900303525;
   const rfBinaryAccuracy = 0.7341029652113005;
 
   const averageAccuracy = (knnBinaryAccuracy + rfBinaryAccuracy) / 2;
   
-  // For the unsafe example, we're forcing this to be unsafe
   const isSafe = false;
   const threatLevel = 'high';
 
@@ -36,13 +35,7 @@ const UnsafeExamplePage = () => {
 
       <main className="flex-1 py-12 px-6 md:px-10">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-8 text-center">Unsafe System Example</h1>
-          
-          <div className="mb-6 bg-red-600/50 p-4 rounded-lg text-white text-center">
-            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-            <p className="font-bold text-xl">THIS IS AN EXAMPLE PAGE</p>
-            <p>Demonstrating how a compromised system would appear in the dashboard</p>
-          </div>
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">Unsafe System</h1>
           
           <SecurityStatusAlert 
             isSafe={isSafe} 
@@ -142,13 +135,6 @@ const UnsafeExamplePage = () => {
               
               <div className="mt-8 flex flex-col md:flex-row gap-4 justify-center w-full">
                 <Button 
-                  className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
-                  size="lg"
-                >
-                  <AlertCircle className="h-5 w-5" />
-                  Activate Emergency Response
-                </Button>
-                <Button 
                   className="bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2"
                   size="lg"
                 >
@@ -165,7 +151,7 @@ const UnsafeExamplePage = () => {
               onClick={() => navigate('/results')}
               className="bg-white hover:bg-gray-100 text-red-800"
             >
-              Return to Safe System Results
+              Return to Results
             </Button>
           </div>
         </div>
