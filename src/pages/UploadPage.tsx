@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, FileType, Loader } from 'lucide-react';
+import { AlertCircle, Loader, ChevronDown, ChevronUp, FileType, HelpCircle, AlertCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { classifyDataset } from '@/services/DatasetClassifier';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -23,79 +23,11 @@ const UploadPage = () => {
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [classificationInProgress, setClassificationInProgress] = useState(false);
   const [classificationResults, setClassificationResults] = useState<any>(null);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
-  const requiredColumns = [
-    'duration',
-    'protocol_type',
-    'service',
-    'flag',
-    'src_bytes',
-    'dst_bytes',
-    'land',
-    'wrong_fragment',
-    'urgent'
-  ];
-
-  const analyzeDataset = async (file: File): Promise<{isSecure: boolean, accuracy: number}> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          const content = e.target.result as string;
-          const lines = content.split('\n');
-          
-          let suspiciousPatterns = 0;
-          let totalRows = lines.length - 1;
-          
-          for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].split(',');
-            if (row.length <= 1) continue;
-            
-            const srcBytes = parseInt(row[4], 10) || 0;
-            if (srcBytes > 10000) suspiciousPatterns++;
-            
-            const flag = row[3]?.toLowerCase();
-            if (flag === "s0" || flag === "rej") suspiciousPatterns++;
-            
-            const service = row[2]?.toLowerCase();
-            if (service === "private" || service === "http_443") suspiciousPatterns++;
-          }
-          
-          const securityScore = totalRows > 0 ? 1 - (suspiciousPatterns / totalRows) : 1;
-          const isSecure = securityScore > 0.95;
-          
-          const accuracy = 0.85 + (Math.random() * 0.13);
-          
-          resolve({
-            isSecure: isSecure,
-            accuracy: accuracy
-          });
-        } else {
-          resolve({
-            isSecure: true,
-            accuracy: 0.97
-          });
-        }
-      };
-
-      reader.onerror = () => {
-        toast.error("Error reading file");
-        resolve({
-          isSecure: true,
-          accuracy: 0.97
-        });
-      };
-
-      reader.readAsText(file);
-    });
-  };
 
   const runMLClassifier = async (file: File): Promise<boolean> => {
     setClassificationInProgress(true);
@@ -142,34 +74,6 @@ const UploadPage = () => {
     }
   };
 
-  const handleRandomRowPredict = async () => {
-    if (!selectedAlgorithm) {
-      toast.error("Please select an algorithm");
-      return;
-    }
-    
-    setIsBuffering(true);
-    toast.info("Analyzing random dataset...");
-    
-    setTimeout(() => {
-      setIsAnalyzing(true);
-      
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setIsBuffering(false);
-        toast.success("Analysis completed!");
-        
-        const showUnsafe = Math.random() > 0.7;
-        
-        if (showUnsafe) {
-          navigate('/unsafe-example');
-        } else {
-          navigate('/results');
-        }
-      }, 1000);
-    }, 2000);
-  };
-
   const handlePredict = async () => {
     if (!selectedFiles) {
       toast.error("Please select a file first");
@@ -214,12 +118,60 @@ const UploadPage = () => {
         setIsBuffering(false);
         toast.error("Error analyzing dataset");
       }
-    }, 2000);
+    }, 5000); // Increased to 5 seconds as requested
+  };
+
+  const analyzeDataset = async (file: File): Promise<{isSecure: boolean}> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const content = e.target.result as string;
+          const lines = content.split('\n');
+          
+          let suspiciousPatterns = 0;
+          let totalRows = lines.length - 1;
+          
+          for (let i = 1; i < lines.length; i++) {
+            const row = lines[i].split(',');
+            if (row.length <= 1) continue;
+            
+            const srcBytes = parseInt(row[4], 10) || 0;
+            if (srcBytes > 10000) suspiciousPatterns++;
+            
+            const flag = row[3]?.toLowerCase();
+            if (flag === "s0" || flag === "rej") suspiciousPatterns++;
+            
+            const service = row[2]?.toLowerCase();
+            if (service === "private" || service === "http_443") suspiciousPatterns++;
+          }
+          
+          const securityScore = totalRows > 0 ? 1 - (suspiciousPatterns / totalRows) : 1;
+          const isSecure = securityScore > 0.95;
+          
+          resolve({
+            isSecure: isSecure
+          });
+        } else {
+          resolve({
+            isSecure: true
+          });
+        }
+      };
+
+      reader.onerror = () => {
+        toast.error("Error reading file");
+        resolve({
+          isSecure: true
+        });
+      };
+
+      reader.readAsText(file);
+    });
   };
 
   const acceptableFileTypes = ".csv,.json";
-
-  const toggleDebugInfo = () => setShowDebugInfo(!showDebugInfo);
 
   return (
     <div className="min-h-screen flex flex-col bg-blue-50">
@@ -270,47 +222,12 @@ const UploadPage = () => {
             </CollapsibleContent>
           </Collapsible>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Random Row Predict</CardTitle>
-                <CardDescription>
-                  It will take a single row from validation data to predict the type of attack.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Algorithm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="knn">K-Nearest Neighbor (KNN)</SelectItem>
-                    <SelectItem value="randomForest">Random Forest</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button 
-                  className="w-full bg-cyan-500 hover:bg-cyan-600" 
-                  onClick={handleRandomRowPredict}
-                  disabled={isAnalyzing || isBuffering}
-                >
-                  {isBuffering || isAnalyzing ? (
-                    <>
-                      <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      {isBuffering ? "Processing..." : "Analyzing..."}
-                    </>
-                  ) : (
-                    "Predict"
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="h-full">
+          <div className="flex justify-center">
+            <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle>Open CSV or JSON</CardTitle>
                 <CardDescription>
-                  It will analyze your cybersecurity dataset file and predict attack types for each row.
+                  Analyze your cybersecurity dataset file and predict attack types.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -354,51 +271,6 @@ const UploadPage = () => {
               </CardContent>
             </Card>
           </div>
-
-          <div className="mt-6 bg-blue-100 p-4 rounded-lg border border-blue-200">
-            <div className="flex items-start gap-3">
-              <HelpCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-blue-800 mb-2">Upload Tips</h3>
-                <p className="text-blue-700">
-                  The system uses machine learning to validate and analyze your cybersecurity datasets. 
-                  For best results, ensure your files contain network traffic patterns, attack signatures, 
-                  or intrusion detection data. The system will automatically detect if your dataset is 
-                  related to cybersecurity before processing, with a minimum 80% confidence threshold.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {classificationResults && (
-            <div className="mt-6">
-              <Button 
-                variant="outline" 
-                onClick={toggleDebugInfo}
-                className="text-xs text-gray-500 mb-2"
-              >
-                {showDebugInfo ? "Hide" : "Show"} Classification Debug Info
-              </Button>
-              
-              {showDebugInfo && (
-                <Alert>
-                  <AlertTitle>Dataset Classification Results</AlertTitle>
-                  <AlertDescription>
-                    <pre className="mt-2 whitespace-pre-wrap text-xs bg-gray-100 p-2 rounded">
-                      {JSON.stringify({
-                        fileName: classificationResults.debugInfo?.fileName || uploadedFileName,
-                        isCybersecurityRelated: classificationResults.isCybersecurityRelated,
-                        confidence: classificationResults.confidence,
-                        matchedKeywords: classificationResults.matchedKeywords,
-                        matchedPatterns: classificationResults.matchedPatterns.length,
-                        threshold: classificationResults.debugInfo?.threshold || 0.8
-                      }, null, 2)}
-                    </pre>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
         </div>
       </main>
 
