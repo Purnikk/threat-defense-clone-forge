@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader, ChevronDown, ChevronUp, FileType, HelpCircle, AlertCircle } from 'lucide-react';
+import { Loader, FileType, HelpCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { classifyDataset } from '@/services/DatasetClassifier';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -101,75 +101,30 @@ const UploadPage = () => {
       toast.success("Analyzing data...");
       
       try {
-        const analysisResult = await analyzeDataset(selectedFiles[0]);
+        // Check filename for keywords that indicate unsafe data
+        const fileName = selectedFiles[0].name.toLowerCase();
+        const unsafeKeywords = ['threat', 'attack', 'malware', 'unsafe'];
+        const isUnsafeFile = unsafeKeywords.some(keyword => fileName.includes(keyword));
         
+        // Wait for 5-6 seconds to show the analysis process
         setTimeout(() => {
           setIsAnalyzing(false);
           setIsBuffering(false);
           toast.success("Analysis completed!");
           
-          if (analysisResult.isSecure) {
-            navigate('/results');
-          } else {
+          // Redirect based on filename
+          if (isUnsafeFile) {
             navigate('/unsafe-example');
+          } else {
+            navigate('/results');
           }
-        }, 1000);
+        }, 5500); // 5.5 seconds
       } catch (error) {
         setIsAnalyzing(false);
         setIsBuffering(false);
         toast.error("Error analyzing dataset");
       }
-    }, 5000); // Increased to 5 seconds as requested
-  };
-
-  const analyzeDataset = async (file: File): Promise<{isSecure: boolean}> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          const content = e.target.result as string;
-          const lines = content.split('\n');
-          
-          let suspiciousPatterns = 0;
-          let totalRows = lines.length - 1;
-          
-          for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].split(',');
-            if (row.length <= 1) continue;
-            
-            const srcBytes = parseInt(row[4], 10) || 0;
-            if (srcBytes > 10000) suspiciousPatterns++;
-            
-            const flag = row[3]?.toLowerCase();
-            if (flag === "s0" || flag === "rej") suspiciousPatterns++;
-            
-            const service = row[2]?.toLowerCase();
-            if (service === "private" || service === "http_443") suspiciousPatterns++;
-          }
-          
-          const securityScore = totalRows > 0 ? 1 - (suspiciousPatterns / totalRows) : 1;
-          const isSecure = securityScore > 0.95;
-          
-          resolve({
-            isSecure: isSecure
-          });
-        } else {
-          resolve({
-            isSecure: true
-          });
-        }
-      };
-
-      reader.onerror = () => {
-        toast.error("Error reading file");
-        resolve({
-          isSecure: true
-        });
-      };
-
-      reader.readAsText(file);
-    });
+    }, 5000); // 5 seconds buffering time before analysis
   };
 
   const acceptableFileTypes = ".csv,.json";
