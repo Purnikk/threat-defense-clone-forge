@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AlertCircle, Loader, ChevronDown, ChevronUp, FileType, HelpCircle, AlertCircle } from 'lucide-react';
+import { Loader, ChevronDown, ChevronUp, FileType, HelpCircle, AlertCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { classifyDataset } from '@/services/DatasetClassifier';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
