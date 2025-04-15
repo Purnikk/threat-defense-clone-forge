@@ -19,11 +19,9 @@ const UnsafeExamplePage = () => {
 
   // Simulated low accuracy scores for unsafe example
   const knnBinaryAccuracy = 0.7260368900303525;
-  const knnMultiAccuracy = 0.7140368900303525;
   const rfBinaryAccuracy = 0.7341029652113005;
-  const rfMultiAccuracy = 0.7131029652113005;
 
-  const averageAccuracy = (knnBinaryAccuracy + knnMultiAccuracy + rfBinaryAccuracy + rfMultiAccuracy) / 4;
+  const averageAccuracy = (knnBinaryAccuracy + rfBinaryAccuracy) / 2;
   
   // For the unsafe example, we're forcing this to be unsafe
   const isSafe = false;
@@ -63,10 +61,6 @@ const UnsafeExamplePage = () => {
                     <p className="text-left">Binary Class Accuracy:</p> 
                     <p className="font-semibold text-red-800">{knnBinaryAccuracy.toFixed(4)}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-left">Multi Class Accuracy:</p> 
-                    <p className="font-semibold text-red-800">{knnMultiAccuracy.toFixed(4)}</p>
-                  </div>
                 </div>
                 
                 <div className="w-full p-4 bg-red-300/50 rounded-lg">
@@ -89,10 +83,6 @@ const UnsafeExamplePage = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-left">Binary Class Accuracy:</p> 
                     <p className="font-semibold text-red-800">{rfBinaryAccuracy.toFixed(4)}</p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-left">Multi Class Accuracy:</p> 
-                    <p className="font-semibold text-red-800">{rfMultiAccuracy.toFixed(4)}</p>
                   </div>
                 </div>
                 
@@ -146,9 +136,7 @@ const UnsafeExamplePage = () => {
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Average Model Accuracy: <span className="text-red-700 font-semibold">{averageAccuracy.toFixed(4)} (BELOW SAFE THRESHOLD)</span></li>
                   <li>KNN Binary Classification Accuracy: <span className="text-red-700">{knnBinaryAccuracy.toFixed(4)}</span></li>
-                  <li>KNN Multi-Class Classification Accuracy: <span className="text-red-700">{knnMultiAccuracy.toFixed(4)}</span></li>
                   <li>Random Forest Binary Classification Accuracy: <span className="text-red-700">{rfBinaryAccuracy.toFixed(4)}</span></li>
-                  <li>Random Forest Multi-Class Classification Accuracy: <span className="text-red-700">{rfMultiAccuracy.toFixed(4)}</span></li>
                 </ul>
               </div>
               

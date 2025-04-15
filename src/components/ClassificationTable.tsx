@@ -14,14 +14,12 @@ interface ClassificationTableProps {
   title: string;
   headers: string[];
   rows: Record<string, string | number>[];
-  isBinary?: boolean;
 }
 
 const ClassificationTable: React.FC<ClassificationTableProps> = ({
   title,
   headers,
   rows,
-  isBinary = true
 }) => {
   // Function to determine if a value indicates high performance (for color highlighting)
   const isHighPerformance = (value: string | number): boolean => {

@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import SecurityStatusAlert from '@/components/SecurityStatusAlert';
-import { ShieldCheck, Shield, Info } from 'lucide-react';
+import { ShieldCheck, Info } from 'lucide-react';
 
 const ResultsPage = () => {
   const { isAuthenticated } = useAuth();
@@ -19,11 +19,9 @@ const ResultsPage = () => {
 
   // SAFE Example: High accuracy scores to demonstrate safe status
   const knnBinaryAccuracy = 0.9760368900303525;
-  const knnMultiAccuracy = 0.9640368900303525;
   const rfBinaryAccuracy = 0.9841029652113005;
-  const rfMultiAccuracy = 0.9731029652113005;
 
-  const averageAccuracy = (knnBinaryAccuracy + knnMultiAccuracy + rfBinaryAccuracy + rfMultiAccuracy) / 4;
+  const averageAccuracy = (knnBinaryAccuracy + rfBinaryAccuracy) / 2;
   
   // Determine security status based on the average accuracy
   const isSafe = averageAccuracy > 0.95;
@@ -34,8 +32,8 @@ const ResultsPage = () => {
   const securityMessage = 
     "Based on our comprehensive analysis using KNN and Random Forest algorithms, your system appears to be secure. No malicious activity has been detected in the analyzed dataset. All network traffic patterns match normal behavior signatures. Continue monitoring for optimal security.";
 
-  const handleViewTable = (algorithm: 'knn' | 'rf', tableType: 'binary' | 'multi') => {
-    navigate('/classification-table', { state: { algorithm, tableType } });
+  const handleViewTable = (algorithm: 'knn' | 'rf') => {
+    navigate('/classification-table', { state: { algorithm } });
   };
 
   return (
@@ -63,25 +61,14 @@ const ResultsPage = () => {
                     <p className="text-left">Binary Class Accuracy:</p> 
                     <p className="font-semibold">{knnBinaryAccuracy.toFixed(4)}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-left">Multi Class Accuracy:</p> 
-                    <p className="font-semibold">{knnMultiAccuracy.toFixed(4)}</p>
-                  </div>
                 </div>
                 
-                <div className="w-full space-y-4">
+                <div className="w-full flex justify-center">
                   <Button 
                     className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                    onClick={() => handleViewTable('knn', 'binary')}
+                    onClick={() => handleViewTable('knn')}
                   >
                     Binary-Class Classification Table
-                  </Button>
-                  
-                  <Button 
-                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                    onClick={() => handleViewTable('knn', 'multi')}
-                  >
-                    Multi-Class Classification Table
                   </Button>
                 </div>
               </CardContent>
@@ -97,25 +84,14 @@ const ResultsPage = () => {
                     <p className="text-left">Binary Class Accuracy:</p> 
                     <p className="font-semibold">{rfBinaryAccuracy.toFixed(4)}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-left">Multi Class Accuracy:</p> 
-                    <p className="font-semibold">{rfMultiAccuracy.toFixed(4)}</p>
-                  </div>
                 </div>
                 
-                <div className="w-full space-y-4">
+                <div className="w-full flex justify-center">
                   <Button 
                     className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                    onClick={() => handleViewTable('rf', 'binary')}
+                    onClick={() => handleViewTable('rf')}
                   >
                     Binary-Class Classification Table
-                  </Button>
-                  
-                  <Button 
-                    className="w-full bg-sky-500 hover:bg-sky-600 text-white"
-                    onClick={() => handleViewTable('rf', 'multi')}
-                  >
-                    Multi-Class Classification Table
                   </Button>
                 </div>
               </CardContent>
@@ -151,9 +127,7 @@ const ResultsPage = () => {
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Average Model Accuracy: <span className="text-green-700 font-semibold">{averageAccuracy.toFixed(4)} (ABOVE SAFE THRESHOLD)</span></li>
                   <li>KNN Binary Classification Accuracy: {knnBinaryAccuracy.toFixed(4)}</li>
-                  <li>KNN Multi-Class Classification Accuracy: {knnMultiAccuracy.toFixed(4)}</li>
                   <li>Random Forest Binary Classification Accuracy: {rfBinaryAccuracy.toFixed(4)}</li>
-                  <li>Random Forest Multi-Class Classification Accuracy: {rfMultiAccuracy.toFixed(4)}</li>
                 </ul>
               </div>
               
